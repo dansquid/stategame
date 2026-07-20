@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0f1420">
 <title>Name the State</title>
 <style>
@@ -10,54 +10,76 @@
     --bg:#0f1420; --panel:#182031; --panel-2:#1f2940; --ink:#eef2fb;
     --muted:#8b96b0; --line:#2b3550; --accent:#4f8cff; --accent-ink:#fff;
     --state:#c9d3ea; --state-line:#8894b4; --hi:#ff4d4d; --ok:#2fce8a; --bad:#ff5d6c;
+    --key:#2a3450; --key-ink:#eef2fb;
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
   body{
     background:var(--bg); color:var(--ink);
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    height:100vh; height:100dvh; overflow:hidden;
     display:flex; flex-direction:column; align-items:center;
-    padding:14px 14px calc(14px + env(safe-area-inset-bottom)); gap:12px;
-    -webkit-tap-highlight-color:transparent;
+    -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;
+    touch-action:manipulation;
   }
-  .wrap{width:100%; max-width:640px; display:flex; flex-direction:column; gap:12px}
-  header{display:flex; align-items:center; justify-content:space-between; gap:10px}
-  h1{font-size:18px; margin:0; letter-spacing:.2px; font-weight:700}
-  .stats{display:flex; gap:8px}
-  .stat{background:var(--panel); border:1px solid var(--line); border-radius:12px;
-    padding:6px 10px; text-align:center; min-width:62px}
-  .stat b{display:block; font-size:18px; line-height:1.1}
-  .stat span{font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted)}
-  .mapcard{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:10px}
-  svg{width:100%; height:auto; display:block}
+  .wrap{
+    width:100%; max-width:560px; height:100%;
+    display:flex; flex-direction:column;
+    padding:8px 10px calc(6px + env(safe-area-inset-bottom)); gap:6px;
+  }
+  header{display:flex; align-items:center; justify-content:space-between; gap:8px; flex:0 0 auto}
+  h1{font-size:16px; margin:0; font-weight:700; white-space:nowrap}
+  .stats{display:flex; gap:6px}
+  .stat{background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:4px 9px; text-align:center; min-width:52px}
+  .stat b{display:block; font-size:16px; line-height:1.1}
+  .stat span{font-size:9px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted)}
+
+  .mapcard{
+    flex:1 1 auto; min-height:0;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:8px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  svg{max-width:100%; max-height:100%; height:auto; width:auto; display:block}
   svg path{fill:var(--state); stroke:var(--state-line); stroke-width:.75; transition:fill .18s ease}
   svg path.hi{fill:var(--hi)}
   svg path.ok{fill:var(--ok)}
-  .prompt{font-size:15px; color:var(--muted); margin:2px 2px -2px}
-  .inputrow{position:relative}
-  #answer{
-    width:100%; font-size:20px; padding:14px 16px; border-radius:14px;
-    border:1px solid var(--line); background:var(--panel-2); color:var(--ink); outline:none;
+
+  .prompt{font-size:13px; color:var(--muted); text-align:center; flex:0 0 auto}
+  .answer{
+    flex:0 0 auto;
+    font-size:22px; font-weight:600; min-height:52px; padding:11px 14px; border-radius:12px;
+    border:1px solid var(--line); background:var(--panel-2);
+    display:flex; align-items:center; overflow:hidden; white-space:nowrap;
   }
-  #answer:focus{border-color:var(--accent)}
-  #answer:disabled{opacity:.75}
-  .suggest{
-    position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:20;
-    background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
-    overflow:hidden; box-shadow:0 12px 30px rgba(0,0,0,.4);
+  .answer.empty{color:var(--muted); font-weight:400}
+  .answer.ok{border-color:var(--ok); color:var(--ok)}
+  .answer.bad{border-color:var(--bad); color:var(--bad)}
+  .caret{display:inline-block; width:2px; height:24px; background:var(--accent);
+    margin-left:2px; animation:blink 1s steps(2,start) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .feedback{flex:0 0 auto; min-height:20px; font-size:14px; font-weight:600; text-align:center}
+  .feedback.ok{color:var(--ok)} .feedback.bad{color:var(--bad)} .feedback.muted{color:var(--muted)}
+
+  .suggest{flex:0 0 auto; display:flex; gap:6px; overflow-x:auto; min-height:40px; padding:1px;
+    scrollbar-width:none}
+  .suggest::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto; background:var(--accent); color:var(--accent-ink);
+    border:none; border-radius:10px; padding:9px 14px; font-size:15px; font-weight:600; cursor:pointer}
+  .chip.alt{background:var(--panel-2); color:var(--ink); border:1px solid var(--line)}
+
+  .kb{flex:0 0 auto; display:flex; flex-direction:column; gap:5px}
+  .krow{display:flex; gap:5px; justify-content:center}
+  .key{
+    flex:1 1 0; min-width:0; height:46px; border:none; border-radius:8px;
+    background:var(--key); color:var(--key-ink); font-size:17px; font-weight:600;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
   }
-  .suggest div{padding:12px 16px; font-size:17px; cursor:pointer; border-top:1px solid var(--line)}
-  .suggest div:first-child{border-top:none}
-  .suggest div.active{background:var(--accent); color:var(--accent-ink)}
-  .feedback{min-height:26px; font-size:17px; font-weight:600; text-align:center; margin-top:2px}
-  .feedback.ok{color:var(--ok)} .feedback.bad{color:var(--bad)}
-  .btn{
-    width:100%; font-size:18px; font-weight:700; padding:14px; border-radius:14px;
-    border:none; background:var(--accent); color:var(--accent-ink); cursor:pointer;
-  }
-  .btn.ghost{background:var(--panel-2); color:var(--ink); border:1px solid var(--line)}
-  .hint{font-size:12px; color:var(--muted); text-align:center}
-  a{color:var(--accent)}
+  .key:active{background:var(--accent)}
+  .key.wide{flex:1.6 1 0; font-size:15px}
+  .key.space{flex:5 1 0; font-size:14px; color:var(--muted)}
+  .key.go{flex:2 1 0; background:var(--accent); color:var(--accent-ink)}
 </style>
 </head>
 <body>
@@ -76,15 +98,10 @@
   </div>
 
   <div class="prompt">Which state is highlighted?</div>
-  <div class="inputrow">
-    <input id="answer" type="text" autocomplete="off" autocapitalize="words"
-      autocorrect="off" spellcheck="false" placeholder="Type the state name…">
-    <div id="suggest" class="suggest" style="display:none"></div>
-  </div>
-
+  <div id="answer" class="answer empty"></div>
   <div id="feedback" class="feedback"></div>
-  <button id="action" class="btn">Check</button>
-  <div class="hint">Start typing and press Enter. No lists to eliminate — you name it.</div>
+  <div id="suggest" class="suggest"></div>
+  <div id="kb" class="kb"></div>
 </div>
 
 <script>
@@ -92,12 +109,12 @@ const STATES = {"AK":{"name":"Alaska","d":"M161.1,453.7 l-0.3,85.4 1.6,1 3.1,0.2
 const CODES = Object.keys(STATES);
 const NAMES = CODES.map(c => STATES[c].name);
 
-// ---- normalization + matching ----
 const norm = s => s.toLowerCase().trim().replace(/[.\-]/g,"").replace(/\s+/g," ");
 const NAME_TO_CODE = {};
 CODES.forEach(c => { NAME_TO_CODE[norm(STATES[c].name)] = c; });
+const titleCase = s => s.replace(/\b[a-z]/g, m => m.toUpperCase());
 
-// ---- build the map ----
+// ---- map ----
 const svg = document.getElementById("map");
 const paths = {};
 CODES.forEach(code => {
@@ -109,109 +126,126 @@ CODES.forEach(code => {
 });
 
 // ---- state ----
-let bag = [];
-let current = null;
-let answered = false;
+let bag = [], current = null, answered = false, buffer = "";
 let streak = 0, correct = 0, total = 0;
 let best = +(localStorage.getItem("nts_best") || 0);
 
 const $ = id => document.getElementById(id);
 const elStreak=$("streak"), elBest=$("best"), elScore=$("score");
-const elFeedback=$("feedback"), elAnswer=$("answer"), elSuggest=$("suggest"), elAction=$("action");
-
+const elAnswer=$("answer"), elFeedback=$("feedback"), elSuggest=$("suggest"), elKb=$("kb");
 elBest.textContent = best;
 
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
-function nextQuestion(){
-  if(bag.length === 0) bag = shuffle(CODES.slice());
-  current = bag.pop();
-  answered = false;
-  Object.values(paths).forEach(p => p.className.baseVal = "");
-  paths[current].className.baseVal = "hi";
-  elFeedback.textContent = ""; elFeedback.className = "feedback";
-  elAnswer.value = ""; elAnswer.disabled = false;
-  elAction.textContent = "Check";
-  hideSuggest();
-  elAnswer.focus();
-}
-
-// ---- autocomplete ----
-let matches = [], active = -1;
 function computeMatches(q){
-  const n = norm(q);
-  if(!n) return [];
+  const n = norm(q); if(!n) return [];
   const starts=[], contains=[];
   NAMES.forEach(name=>{ const nn=norm(name);
-    if(nn.startsWith(n)) starts.push(name);
-    else if(nn.includes(n)) contains.push(name);
+    if(nn.startsWith(n)) starts.push(name); else if(nn.includes(n)) contains.push(name);
   });
   return starts.concat(contains).slice(0,6);
 }
-function renderSuggest(){
-  if(matches.length===0){ hideSuggest(); return; }
-  elSuggest.innerHTML = "";
-  matches.forEach((name,i)=>{
-    const d=document.createElement("div");
-    d.textContent=name;
-    if(i===active) d.className="active";
-    d.addEventListener("mousedown", e=>{ e.preventDefault(); elAnswer.value=name; submit(); });
-    elSuggest.appendChild(d);
-  });
-  elSuggest.style.display="block";
-}
-function hideSuggest(){ elSuggest.style.display="none"; matches=[]; active=-1; }
 
-elAnswer.addEventListener("input", ()=>{
-  if(answered) return;
-  matches = computeMatches(elAnswer.value);
-  active = matches.length ? 0 : -1;
-  renderSuggest();
-});
-elAnswer.addEventListener("keydown", e=>{
-  if(answered){ if(e.key==="Enter"){ e.preventDefault(); nextQuestion(); } return; }
-  if(e.key==="ArrowDown"){ e.preventDefault(); if(matches.length){ active=(active+1)%matches.length; renderSuggest(); } }
-  else if(e.key==="ArrowUp"){ e.preventDefault(); if(matches.length){ active=(active-1+matches.length)%matches.length; renderSuggest(); } }
-  else if(e.key==="Enter"){ e.preventDefault();
-    if(active>=0 && matches[active]) elAnswer.value = matches[active];
-    submit();
+function render(){
+  if(buffer){ elAnswer.textContent = titleCase(buffer); elAnswer.classList.remove("empty"); }
+  else { elAnswer.textContent = "Type the state name…"; elAnswer.classList.add("empty"); }
+  if(!answered){
+    const c = document.createElement("span"); c.className = "caret"; elAnswer.appendChild(c);
   }
-  else if(e.key==="Escape"){ hideSuggest(); }
-});
+  // suggestions
+  elSuggest.innerHTML = "";
+  if(!answered){
+    computeMatches(buffer).forEach((name,i)=>{
+      const b = document.createElement("button");
+      b.className = "chip" + (i===0 ? "" : " alt");
+      b.textContent = name;
+      b.addEventListener("click", ()=>{ buffer = name.toLowerCase(); submit(); });
+      elSuggest.appendChild(b);
+    });
+  }
+}
 
-// ---- submit / grade ----
+function nextQuestion(){
+  if(bag.length === 0) bag = shuffle(CODES.slice());
+  current = bag.pop();
+  answered = false; buffer = "";
+  Object.values(paths).forEach(p => p.className.baseVal = "");
+  paths[current].className.baseVal = "hi";
+  elAnswer.classList.remove("ok","bad");
+  elFeedback.textContent = ""; elFeedback.className = "feedback";
+  setEnterLabel();
+  render();
+}
+
 function submit(){
   if(answered) return;
-  const guessCode = NAME_TO_CODE[norm(elAnswer.value)];
+  if(!buffer.trim()) return;
+  let guessCode = NAME_TO_CODE[norm(buffer)];
+  if(!guessCode){ const m = computeMatches(buffer); if(m.length) guessCode = NAME_TO_CODE[norm(m[0])]; }
   if(!guessCode){
-    elFeedback.textContent = "Not a state name — keep typing.";
-    elFeedback.className = "feedback";
-    return;
+    elFeedback.textContent = "Keep typing…"; elFeedback.className = "feedback muted"; return;
   }
-  answered = true;
-  hideSuggest();
-  elAnswer.disabled = true;
-  total++;
+  answered = true; total++;
   const answerName = STATES[current].name;
+  buffer = STATES[guessCode].name.toLowerCase();
   if(guessCode === current){
     correct++; streak++;
     if(streak>best){ best=streak; localStorage.setItem("nts_best",best); elBest.textContent=best; }
     paths[current].className.baseVal = "ok";
-    elFeedback.textContent = "✓ " + answerName;
-    elFeedback.className = "feedback ok";
+    elAnswer.classList.add("ok");
+    elFeedback.textContent = "✓ Correct — " + answerName; elFeedback.className = "feedback ok";
   } else {
     streak = 0;
-    paths[current].className.baseVal = "ok"; // reveal the correct one in green
-    elFeedback.textContent = "✗ You said " + STATES[guessCode].name + " — it's " + answerName;
-    elFeedback.className = "feedback bad";
+    paths[current].className.baseVal = "ok";
+    elAnswer.classList.add("bad");
+    elFeedback.textContent = "✗ That's " + answerName; elFeedback.className = "feedback bad";
   }
-  elStreak.textContent = streak;
-  elScore.textContent = correct + "/" + total;
-  elAction.textContent = "Next →";
-  elAction.focus();
+  elStreak.textContent = streak; elScore.textContent = correct + "/" + total;
+  setEnterLabel();
+  render();
 }
 
-elAction.addEventListener("click", ()=>{ if(answered) nextQuestion(); else submit(); });
+// ---- on-screen keyboard ----
+const LAYOUT = [
+  ["Q","W","E","R","T","Y","U","I","O","P"],
+  ["A","S","D","F","G","H","J","K","L"],
+  ["Z","X","C","V","B","N","M","back"],
+  ["space","enter"]
+];
+let enterBtn = null;
+function setEnterLabel(){ if(enterBtn) enterBtn.textContent = answered ? "Next" : "Enter"; }
+
+function handleKey(act, ch){
+  if(answered){ if(act==="enter") nextQuestion(); return; }
+  if(act==="char"){ if(buffer.replace(/\s/g,"").length < 20) buffer += ch.toLowerCase(); }
+  else if(act==="space"){ if(buffer && !buffer.endsWith(" ")) buffer += " "; }
+  else if(act==="back"){ buffer = buffer.slice(0,-1); }
+  else if(act==="enter"){ submit(); return; }
+  render();
+}
+
+LAYOUT.forEach(row=>{
+  const r = document.createElement("div"); r.className = "krow";
+  row.forEach(key=>{
+    const b = document.createElement("button"); b.className = "key";
+    if(key==="back"){ b.textContent="⌫"; b.classList.add("wide"); b.dataset.act="back"; }
+    else if(key==="space"){ b.textContent="space"; b.classList.add("space"); b.dataset.act="space"; }
+    else if(key==="enter"){ b.textContent="Enter"; b.classList.add("go"); b.dataset.act="enter"; enterBtn=b; }
+    else { b.textContent=key; b.dataset.act="char"; b.dataset.ch=key; }
+    b.addEventListener("click", ()=> handleKey(b.dataset.act, b.dataset.ch));
+    r.appendChild(b);
+  });
+  elKb.appendChild(r);
+});
+
+// ---- physical keyboard (desktop) ----
+document.addEventListener("keydown", e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  if(e.key==="Enter"){ e.preventDefault(); handleKey("enter"); }
+  else if(e.key==="Backspace"){ e.preventDefault(); handleKey("back"); }
+  else if(e.key===" "){ e.preventDefault(); handleKey("space"); }
+  else if(/^[a-zA-Z]$/.test(e.key)){ handleKey("char", e.key); }
+});
 
 nextQuestion();
 </script>
