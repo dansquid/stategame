@@ -1,20 +1,40 @@
-# Name the State
+# Map Quiz
 
-A dead-simple US geography game. It highlights one state on the map; you **type its name** and press Enter. Autocomplete only helps with spelling — you still have to recall the name yourself, so there's no multiple-choice list to eliminate your way through. The goal: eventually know the name and location of all 50 states.
+A dead-simple geography guessing game. It shows you something on a map (or a flag) and you **type the name** — no multiple-choice options to eliminate your way through, so it's real recall. Pick a game from the ☰ menu, top-left.
 
-## Play
+## Games
 
-Open `index.html` in any browser — no build step, no server. It's one self-contained file. Works great on a phone.
+- **US States** — name the highlighted US state (all 50).
+- **World Countries** — name the highlighted country (184 on the map).
+- **England Counties** — name the highlighted ceremonial county (47).
+- **Name the Flag** — a flag is shown; name the country (193).
 
-To play from a URL, drop it on any static host (e.g. GitHub Pages: enable Pages on this branch and visit the published link).
+## How to play
 
-## How it works
+- Open the site — no build step, no server, works on a phone.
+- Type the answer on the **built-in keyboard** (so the phone's own keyboard never covers the map). On a laptop you can just type.
+- Suggestions appear as you type to help spelling; Enter takes the top one, or tap a suggestion.
+- Correct → streak and score go up. Wrong → it shows the right answer.
+- **Best streak is saved per game** in your browser.
+- Tiny regions/countries get a **locator ring** so you can find them.
 
-- One highlighted state per round, drawn from a shuffled bag so all 50 come up before any repeats.
-- Type the state name; suggestions appear as you type. Enter accepts the top suggestion.
-- Correct → streak and score go up, state flashes green. Wrong → it shows the right answer and resets your streak.
-- Best streak is saved in your browser (`localStorage`).
+Common alternate names are accepted (e.g. *USA*, *UK*, *Holland*, *Burma*, *Swaziland*), and accents/apostrophes are ignored so *Cote dIvoire* works.
+
+## Project layout
+
+```
+index.html        game engine + menu (self-contained)
+data/states.js    US state shapes
+data/countries.js world country shapes
+data/counties.js  England ceremonial county shapes
+data/flags.js     country list for the flag game
+flags/<iso2>.svg  flag images
+```
 
 ## Credits
 
-US map SVG paths are from the [`react-usa-map`](https://github.com/gabidavila/react-usa-map) project, whose map derives from Wikimedia and is licensed **CC BY-SA 3.0**.
+- US map paths from [`react-usa-map`](https://github.com/gabidavila/react-usa-map) (derived from Wikimedia, CC BY-SA 3.0).
+- World country paths from [`world-map-country-shapes`](https://github.com/sirLisko/world-map-country-shapes).
+- England ceremonial county paths from [`counties-quiz`](https://github.com/hickford/counties-quiz).
+- Country names from [`world_countries`](https://github.com/stefangabos/world_countries).
+- Flags from [`country-flags`](https://github.com/hampusborgos/country-flags) (public domain).
