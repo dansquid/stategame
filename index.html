@@ -155,7 +155,7 @@
 const G = window.G || {};
 const GAMES = {
   states:    {title:"US States",        em:"🇺🇸", type:"map",  prompt:"Which state is highlighted?",     data:()=>G.states},
-  countries: {title:"World Countries",  em:"🌍", type:"map",  prompt:"Which country is highlighted?",   data:()=>G.countries},
+  countries: {title:"World Countries",  em:"🌍", type:"map",  prompt:"Which country is highlighted?",   data:()=>G.countries, zoom:true},
   counties:  {title:"England Counties", em:"🏴", type:"map",  prompt:"Which county is highlighted?",    data:()=>G.counties},
   flags:     {title:"Name the Flag",    em:"🚩", type:"flag", prompt:"Which country's flag is this?",   data:()=>G.flags},
 };
@@ -173,6 +173,8 @@ const elAnswer=$("answer"), elFeedback=$("feedback"), elSuggest=$("suggest"), el
 let gameId, game, codeList=[], nameByCode={}, NAME_TO_CODE={}, NAMES=[], paths={};
 let bag=[], current=null, answered=false, buffer="";
 let streak=0, correct=0, total=0, best=0;
+let fullVB=null, rafId=0;
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
 
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function addName(name,code){ NAME_TO_CODE[norm(name)] = code; }
@@ -186,7 +188,19 @@ function buildMap(d){
   });
   const bb=svg.getBBox();
   const pad=Math.max(bb.width,bb.height)*0.02;
-  svg.setAttribute("viewBox", `${bb.x-pad} ${bb.y-pad} ${bb.width+2*pad} ${bb.height+2*pad}`);
+  fullVB={x:bb.x-pad, y:bb.y-pad, w:bb.width+2*pad, h:bb.height+2*pad};
+  setVB(fullVB);
+}
+function setVB(v){ svg.setAttribute("viewBox", `${v.x} ${v.y} ${v.w} ${v.h}`); }
+function animateVB(from,to,dur){
+  cancelAnimationFrame(rafId);
+  const t0=performance.now(), ease=t=>1-Math.pow(1-t,3);
+  (function step(now){
+    const t=Math.min(1,(now-t0)/dur), e=ease(t);
+    setVB({x:from.x+(to.x-from.x)*e, y:from.y+(to.y-from.y)*e,
+           w:from.w+(to.w-from.w)*e, h:from.h+(to.h-from.h)*e});
+    if(t<1) rafId=requestAnimationFrame(step);
+  })(t0);
 }
 
 function loadGame(id){
@@ -212,10 +226,24 @@ function loadGame(id){
 }
 
 function highlight(code){
+  cancelAnimationFrame(rafId);
   [...svg.querySelectorAll(".locator")].forEach(n=>n.remove());
   Object.values(paths).forEach(p=>p.setAttribute("class",""));
   const p=paths[code]; p.setAttribute("class","hi");
-  const rb=p.getBBox(), vb=svg.viewBox.baseVal;
+  const rb=p.getBBox();
+  if(game.zoom && fullVB){
+    // zoom amount scales with country size: small country -> zoom a lot, big -> a little
+    const targetFrac=0.5, minS=0.08;
+    const frac=Math.max(rb.width/fullVB.w, rb.height/fullVB.h);
+    const s=Math.min(1, Math.max(minS, frac/targetFrac));
+    const vw=fullVB.w*s, vh=fullVB.h*s;
+    const cx=clamp(rb.x+rb.width/2, fullVB.x+vw/2, fullVB.x+fullVB.w-vw/2);
+    const cy=clamp(rb.y+rb.height/2, fullVB.y+vh/2, fullVB.y+fullVB.h-vh/2);
+    setVB(fullVB); // start from the whole map...
+    animateVB(fullVB, {x:cx-vw/2, y:cy-vh/2, w:vw, h:vh}, 550); // ...then zoom in
+    return;
+  }
+  const vb=svg.viewBox.baseVal;
   const diag=Math.hypot(vb.width,vb.height), rdiag=Math.hypot(rb.width,rb.height);
   if(rdiag < diag*0.05){
     const r=diag*0.045, cx=rb.x+rb.width/2, cy=rb.y+rb.height/2;
