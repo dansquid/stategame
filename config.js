@@ -6,4 +6,4 @@
 //
 //   window.LEADERBOARD_API = "https://mapquiz-api.yourname.workers.dev";
 //
-window.LEADERBOARD_API = "";
+window.LEADERBOARD_API = "https://mapquiz-api.dan-da4.workers.dev";

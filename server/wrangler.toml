@@ -6,4 +6,4 @@ compatibility_date = "2024-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "mapquiz"
-database_id = "PASTE_YOUR_DATABASE_ID_HERE"
+database_id = "374a5d93-0779-4fb0-b062-8f04218f1ca4"
