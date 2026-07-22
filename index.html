@@ -96,8 +96,9 @@
   .option.ok{background:#1c4634; border-color:var(--ok); color:#8ff0c4}
   .option.bad{background:#4a2530; border-color:var(--bad); color:#ffb3bc}
   .nextBtn{flex:0 0 auto; display:none; align-self:center; min-width:200px; margin-top:8px;
-    padding:15px 22px; border:none; border-radius:12px; background:var(--accent); color:var(--accent-ink);
+    padding:15px 22px; border:1px solid transparent; border-radius:12px; background:var(--accent); color:var(--accent-ink);
     font-size:18px; font-weight:700; cursor:pointer}
+  .nextBtn:disabled{background:var(--panel-2); color:var(--muted); border:1px solid var(--line); cursor:default}
 
   .kb{flex:0 0 auto; display:flex; flex-direction:column; gap:5px}
   .krow{display:flex; gap:5px; justify-content:center}
@@ -116,6 +117,7 @@
   #options{display:none}
   body.mode-easy #answer, body.mode-easy #suggest, body.mode-easy #kb{display:none}
   body.mode-easy #options{display:grid}
+  body.mode-easy #nextBtn{display:block}
 
   /* menu */
   .backdrop{position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:30; display:none}
@@ -402,7 +404,7 @@ function nextQuestion(){
   elAnswer.classList.remove("ok","bad");
   elFeedback.textContent=""; elFeedback.className="feedback";
   elPrompt.textContent=game.prompt;
-  $("nextBtn").style.display="none";
+  $("nextBtn").disabled=true;
   setEnterLabel();
   if(difficulty==="easy") buildOptions(); else render();
 }
@@ -426,7 +428,7 @@ function evaluateGuess(guessCode){
   buffer=answerName;
   elStreak.textContent=streak; elScore.textContent=correct+"/"+total;
   setEnterLabel();
-  if(difficulty==="easy"){ markOptions(); $("nextBtn").style.display="block"; } else render();
+  if(difficulty==="easy"){ markOptions(); $("nextBtn").disabled=false; } else render();
 }
 
 function submit(){
