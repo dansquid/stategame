@@ -38,6 +38,15 @@ To share it, just send the link — people install from there.
 
 Common alternate names are accepted (e.g. *USA*, *UK*, *Holland*, *Burma*, *Swaziland*), and accents/apostrophes are ignored so *Cote dIvoire* works.
 
+## Leaderboard (optional, off by default)
+
+There's an optional shared leaderboard of best streaks per game + difficulty. It's **off** until you deploy a tiny free backend and point the app at it:
+
+1. Deploy the Cloudflare Worker + D1 database in [`server/`](server/README.md) (free; ~30 min one-time).
+2. Paste the Worker URL into `config.js`.
+
+Then a **🏆 Leaderboard** section appears in the menu — players enter a name once, their best streaks submit automatically, and anyone can view the top 20 per game/difficulty. Scores are clamped server-side to the maximum possible streak, so nonsense entries can't get in. With `config.js` empty, none of this shows and the game works exactly as before.
+
 ## Project layout
 
 ```
@@ -50,6 +59,8 @@ flags/<iso2>.svg      flag images
 manifest.webmanifest  PWA manifest
 sw.js                 service worker (offline cache)
 icons/                app icons
+config.js             leaderboard backend URL (empty = leaderboard off)
+server/               Cloudflare Worker + D1 leaderboard backend
 ```
 
 If you change any assets, bump the `CACHE` version string in `sw.js` so already-installed users pick up the update.

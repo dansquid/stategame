@@ -162,6 +162,36 @@
     border-radius:50%; background:var(--muted); transition:all .15s ease}
   .toggle.on{background:#243352; border-color:var(--accent)}
   .toggle.on::after{left:27px; background:var(--accent)}
+  .nameInput{width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--ink); font-size:15px; margin-bottom:8px}
+  .nameInput:focus{outline:none; border-color:var(--accent)}
+  .lbBtn{width:100%; padding:13px; border:none; border-radius:12px; background:var(--accent);
+    color:var(--accent-ink); font-size:16px; font-weight:700; cursor:pointer}
+
+  /* leaderboard panel */
+  .lbPanel{
+    position:fixed; z-index:32; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:min(460px,92vw); max-height:88vh; display:none; flex-direction:column; gap:10px;
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  .lbPanel.open{display:flex}
+  .lbHead{display:flex; align-items:center; justify-content:space-between}
+  .lbHead h2{margin:0; font-size:18px}
+  .lbClose{width:34px; height:34px; border-radius:9px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--ink); font-size:15px; cursor:pointer}
+  .lbTabs{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none}
+  .lbTabs::-webkit-scrollbar{display:none}
+  .lbTab{flex:0 0 auto; padding:8px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--ink); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap}
+  .lbTab.active{border-color:var(--accent); background:#243352}
+  .lbList{overflow-y:auto; display:flex; flex-direction:column; gap:4px; min-height:120px}
+  .lbRow{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; background:var(--panel-2)}
+  .lbRow .rank{width:26px; color:var(--muted); font-weight:700; text-align:right}
+  .lbRow .who{flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lbRow .val{font-weight:700; color:var(--ok)}
+  .lbRow.me{border:1px solid var(--accent)}
+  .lbNote{color:var(--muted); font-size:14px; text-align:center; padding:24px 8px}
 </style>
 </head>
 <body>
@@ -206,9 +236,29 @@
   <div id="diffCaption" class="caption"></div>
   <h2>Options</h2>
   <div class="setRow"><span>Auto-zoom (World map)</span><button id="zoomToggle" class="toggle"></button></div>
+  <div id="lbMenu" style="display:none">
+    <h2>Leaderboard</h2>
+    <input id="nameInput" class="nameInput" maxlength="16" placeholder="Your name (for the leaderboard)">
+    <button id="viewLb" class="lbBtn">🏆 View leaderboard</button>
+  </div>
 </nav>
 
+<div id="lbBackdrop" class="backdrop"></div>
+<div id="lbPanel" class="lbPanel">
+  <div class="lbHead">
+    <h2>🏆 Leaderboard</h2>
+    <button id="lbClose" class="lbClose" aria-label="Close">✕</button>
+  </div>
+  <div id="lbTabs" class="lbTabs"></div>
+  <div class="seg" id="lbDiffSeg">
+    <button data-d="easy">Easy</button>
+    <button data-d="hard">Hard</button>
+  </div>
+  <div id="lbList" class="lbList"></div>
+</div>
+
 <!-- data -->
+<script src="config.js"></script>
 <script src="data/states.js"></script>
 <script src="data/countries.js"></script>
 <script src="data/counties.js"></script>
@@ -239,6 +289,11 @@ const elAnswer=$("answer"), elFeedback=$("feedback"), elSuggest=$("suggest"), el
 // ---- settings ----
 let difficulty = localStorage.getItem("nts_diff")==="easy" ? "easy" : "hard";
 let zoomOn = localStorage.getItem("nts_zoom") !== "off";
+
+// ---- leaderboard ----
+const LB_API = (window.LEADERBOARD_API || "").replace(/\/+$/,"");
+const LB_ON = !!LB_API;
+let playerName = localStorage.getItem("nts_name") || "";
 
 // ---- per-game state ----
 let gameId, game, codeList=[], nameByCode={}, NAME_TO_CODE={}, NAMES=[], paths={};
@@ -422,7 +477,7 @@ function evaluateGuess(guessCode){
   const answerName=nameByCode[current];
   if(guessCode===current){
     correct++; streak++;
-    if(streak>best){ best=streak; localStorage.setItem(bestKey(),best); elBest.textContent=best; }
+    if(streak>best){ best=streak; localStorage.setItem(bestKey(),best); elBest.textContent=best; submitScore(); }
     if(game.type==="map") revealCorrect(current);
     elAnswer.classList.add("ok");
     elFeedback.textContent="✓ Correct — "+answerName; elFeedback.className="feedback ok";
@@ -511,6 +566,8 @@ function updateSettingsUI(){
   [...$("diffSeg").children].forEach(b=>b.classList.toggle("active", b.dataset.d===difficulty));
   $("diffCaption").textContent=DIFF_CAPTION[difficulty];
   $("zoomToggle").classList.toggle("on", zoomOn);
+  $("lbMenu").style.display = LB_ON ? "block" : "none";
+  $("nameInput").value = playerName;
 }
 [...$("diffSeg").children].forEach(b=>b.addEventListener("click", ()=>{
   if(b.dataset.d===difficulty){ updateSettingsUI(); return; }
@@ -524,6 +581,59 @@ $("zoomToggle").addEventListener("click", ()=>{
 });
 $("menuBtn").addEventListener("click", openMenu);
 $("backdrop").addEventListener("click", closeMenu);
+
+// ---- leaderboard ----
+let lbGame="states", lbDiff="hard";
+function submitScore(){
+  if(!LB_ON || !playerName || best<=0) return;
+  fetch(LB_API+"/score", {method:"POST", headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({game:gameId, diff:difficulty, name:playerName, streak:best})}).catch(()=>{});
+}
+function openLb(){
+  closeMenu();
+  lbGame=gameId; lbDiff=difficulty;
+  buildLbTabs(); updateLbDiff();
+  $("lbPanel").classList.add("open"); $("lbBackdrop").classList.add("open");
+  loadBoard();
+}
+function closeLb(){ $("lbPanel").classList.remove("open"); $("lbBackdrop").classList.remove("open"); }
+function buildLbTabs(){
+  const t=$("lbTabs"); t.innerHTML="";
+  ORDER.forEach(id=>{
+    const b=document.createElement("button");
+    b.className="lbTab"+(id===lbGame?" active":"");
+    b.textContent=GAMES[id].em+" "+GAMES[id].title;
+    b.addEventListener("click", ()=>{ lbGame=id; buildLbTabs(); loadBoard(); });
+    t.appendChild(b);
+  });
+}
+function updateLbDiff(){
+  [...$("lbDiffSeg").children].forEach(b=>b.classList.toggle("active", b.dataset.d===lbDiff));
+}
+function loadBoard(){
+  const list=$("lbList");
+  list.innerHTML='<div class="lbNote">Loading…</div>';
+  fetch(`${LB_API}/leaderboard?game=${encodeURIComponent(lbGame)}&diff=${encodeURIComponent(lbDiff)}`)
+    .then(r=>r.json())
+    .then(rows=>{
+      if(!Array.isArray(rows) || rows.length===0){ list.innerHTML='<div class="lbNote">No scores yet — be the first!</div>'; return; }
+      list.innerHTML="";
+      rows.forEach((row,i)=>{
+        const d=document.createElement("div");
+        d.className="lbRow"+(row.name===playerName?" me":"");
+        d.innerHTML=`<span class="rank">${i+1}</span><span class="who"></span><span class="val">${row.streak}</span>`;
+        d.querySelector(".who").textContent=row.name;
+        list.appendChild(d);
+      });
+    })
+    .catch(()=>{ list.innerHTML='<div class="lbNote">Couldn\'t load the leaderboard.<br>Check your connection.</div>'; });
+}
+$("nameInput").addEventListener("input", e=>{ playerName=e.target.value.trim().slice(0,16); localStorage.setItem("nts_name", playerName); });
+$("nameInput").addEventListener("change", ()=>submitScore());
+$("viewLb").addEventListener("click", openLb);
+$("lbClose").addEventListener("click", closeLb);
+$("lbBackdrop").addEventListener("click", closeLb);
+[...$("lbDiffSeg").children].forEach(b=>b.addEventListener("click", ()=>{ lbDiff=b.dataset.d; updateLbDiff(); loadBoard(); }));
 
 // ---- start ----
 const last=localStorage.getItem("nts_last");
