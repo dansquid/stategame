@@ -12,11 +12,20 @@ A dead-simple geography guessing game. It shows you something on a map (or a fla
 ## How to play
 
 - Open the site — no build step, no server, works on a phone.
-- Type the answer on the **built-in keyboard** (so the phone's own keyboard never covers the map). On a laptop you can just type.
-- Suggestions appear as you type to help spelling; Enter takes the top one, or tap a suggestion.
+- Answer on the **built-in keyboard** (so the phone's own keyboard never covers the map). On a laptop you can just type.
 - Correct → streak and score go up. Wrong → it shows the right answer.
-- **Best streak is saved per game** in your browser.
-- Tiny regions/countries get a **locator ring** so you can find them.
+- **Best streak is saved per game and per difficulty** in your browser.
+
+## Difficulty (☰ menu)
+
+- **Easy** — tap one of 6 options. Good for hard sets like flags.
+- **Medium** *(default)* — type the answer; suggestions appear to help spelling; Enter takes the top one.
+- **Hard** — type it from memory with no suggestions; the **💡 key** reveals the first letter (tap again for more).
+
+## Zoom (map games)
+
+- By default the map **zooms to the highlighted answer**, scaled to its size — tiny countries zoom in close, big ones barely at all — then you can step out with the on-map **+ / −** buttons (Focus → Mid → Full).
+- Turn zoom off in the ☰ menu's **Options**; then small regions get a **locator ring** instead.
 
 Common alternate names are accepted (e.g. *USA*, *UK*, *Holland*, *Burma*, *Swaziland*), and accents/apostrophes are ignored so *Cote dIvoire* works.
 

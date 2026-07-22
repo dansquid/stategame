@@ -42,7 +42,7 @@
   .stat span{font-size:9px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted)}
 
   .board{
-    flex:1 1 auto; min-height:0;
+    position:relative; flex:1 1 auto; min-height:0;
     background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:8px;
     display:flex; align-items:center; justify-content:center;
   }
@@ -56,8 +56,15 @@
   #flag{display:none; max-width:100%; max-height:100%; border:1px solid var(--line); border-radius:8px}
   body.flagmode #map{display:none}
   body.flagmode #flag{display:block}
+  .zoomctl{position:absolute; right:12px; bottom:12px; display:none; flex-direction:column; gap:6px; z-index:5}
+  .zoomctl button{
+    width:38px; height:38px; border-radius:10px; border:1px solid var(--line);
+    background:rgba(24,32,49,.82); color:var(--ink); font-size:22px; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; backdrop-filter:blur(3px);
+  }
 
-  .prompt{font-size:13px; color:var(--muted); text-align:center; flex:0 0 auto}
+  .prompt{font-size:13px; color:var(--muted); text-align:center; flex:0 0 auto; min-height:18px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .answer{
     flex:0 0 auto;
     font-size:22px; font-weight:600; min-height:52px; padding:11px 14px; border-radius:12px;
@@ -80,6 +87,15 @@
     border:none; border-radius:10px; padding:9px 14px; font-size:15px; font-weight:600; cursor:pointer; white-space:nowrap}
   .chip.alt{background:var(--panel-2); color:var(--ink); border:1px solid var(--line)}
 
+  .options{flex:0 0 auto; display:none; grid-template-columns:1fr 1fr; gap:8px}
+  .option{
+    min-height:56px; border:1px solid var(--line); border-radius:12px; background:var(--panel-2);
+    color:var(--ink); font-size:17px; font-weight:600; cursor:pointer; padding:8px 10px;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+  }
+  .option.ok{background:#1c4634; border-color:var(--ok); color:#8ff0c4}
+  .option.bad{background:#4a2530; border-color:var(--bad); color:#ffb3bc}
+
   .kb{flex:0 0 auto; display:flex; flex-direction:column; gap:5px}
   .krow{display:flex; gap:5px; justify-content:center}
   .key{
@@ -88,37 +104,59 @@
     cursor:pointer; display:flex; align-items:center; justify-content:center;
   }
   .key:active{background:var(--accent)}
-  .key.wide{flex:1.6 1 0; font-size:15px}
-  .key.space{flex:5 1 0; font-size:14px; color:var(--muted)}
+  .key.wide{flex:1.5 1 0; font-size:15px}
+  .key.hint{flex:1.5 1 0; font-size:18px}
+  .key.space{flex:4 1 0; font-size:14px; color:var(--muted)}
   .key.go{flex:2 1 0; background:var(--accent); color:var(--accent-ink)}
+
+  /* difficulty-driven visibility */
+  #options{display:none}
+  body.mode-easy #answer, body.mode-easy #suggest, body.mode-easy #kb{display:none}
+  body.mode-easy #options{display:grid}
+  body.mode-hard #suggest{display:none}
 
   /* menu */
   .backdrop{position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:30; display:none}
   .backdrop.open{display:block}
   .menu{
-    position:fixed; top:0; left:0; bottom:0; width:min(300px,82vw); z-index:31;
+    position:fixed; top:0; left:0; bottom:0; width:min(320px,86vw); z-index:31;
     background:var(--panel); border-right:1px solid var(--line);
     transform:translateX(-100%); transition:transform .2s ease;
     display:flex; flex-direction:column; padding:16px 14px calc(16px + env(safe-area-inset-bottom));
-    gap:8px;
+    gap:8px; overflow-y:auto;
   }
   .menu.open{transform:translateX(0)}
-  .menu h2{font-size:13px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin:4px 2px 8px}
+  .menu h2{font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin:14px 2px 6px}
+  .menu h2:first-child{margin-top:0}
   .gameItem{
     display:flex; align-items:center; gap:12px; text-align:left;
     background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
-    padding:13px 14px; color:var(--ink); font-size:17px; font-weight:600; cursor:pointer;
+    padding:12px 14px; color:var(--ink); font-size:16px; font-weight:600; cursor:pointer;
   }
   .gameItem.active{border-color:var(--accent); background:#243352}
-  .gameItem .em{font-size:22px}
+  .gameItem .em{font-size:20px}
   .gameItem .meta{margin-left:auto; font-size:11px; color:var(--muted); font-weight:500; text-align:right}
-  .menuFoot{margin-top:auto; font-size:11px; color:var(--muted); text-align:center; line-height:1.5}
+  .seg{display:flex; gap:6px}
+  .seg button{
+    flex:1; padding:10px 4px; border-radius:10px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--ink); font-size:14px; font-weight:600; cursor:pointer;
+  }
+  .seg button.active{border-color:var(--accent); background:#243352}
+  .caption{font-size:11px; color:var(--muted); margin:6px 2px 0; line-height:1.4}
+  .setRow{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:4px}
+  .setRow span{font-size:15px; font-weight:600}
+  .toggle{width:52px; height:30px; border-radius:16px; border:1px solid var(--line);
+    background:var(--panel-2); position:relative; cursor:pointer}
+  .toggle::after{content:""; position:absolute; top:3px; left:3px; width:22px; height:22px;
+    border-radius:50%; background:var(--muted); transition:all .15s ease}
+  .toggle.on{background:#243352; border-color:var(--accent)}
+  .toggle.on::after{left:27px; background:var(--accent)}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <button id="menuBtn" class="menuBtn" aria-label="Choose game">☰</button>
+    <button id="menuBtn" class="menuBtn" aria-label="Menu">☰</button>
     <h1 id="title">Map Quiz</h1>
     <div class="stats">
       <div class="stat"><b id="streak">0</b><span>Streak</span></div>
@@ -130,12 +168,17 @@
   <div class="board">
     <svg id="map" viewBox="0 0 959 593" role="img" aria-label="Map"></svg>
     <img id="flag" alt="Flag to identify">
+    <div id="zoomctl" class="zoomctl">
+      <button id="zoomIn" aria-label="Zoom in">+</button>
+      <button id="zoomOut" aria-label="Zoom out">−</button>
+    </div>
   </div>
 
   <div id="prompt" class="prompt"></div>
   <div id="answer" class="answer empty"></div>
   <div id="feedback" class="feedback"></div>
   <div id="suggest" class="suggest"></div>
+  <div id="options" class="options"></div>
   <div id="kb" class="kb"></div>
 </div>
 
@@ -143,7 +186,15 @@
 <nav id="menu" class="menu">
   <h2>Choose a game</h2>
   <div id="gameList"></div>
-  <div class="menuFoot">Type the answer — no options to eliminate.<br>Your best streak is saved per game.</div>
+  <h2>Difficulty</h2>
+  <div class="seg" id="diffSeg">
+    <button data-d="easy">Easy</button>
+    <button data-d="medium">Medium</button>
+    <button data-d="hard">Hard</button>
+  </div>
+  <div id="diffCaption" class="caption"></div>
+  <h2>Options</h2>
+  <div class="setRow"><span>Zoom to answer (maps)</span><button id="zoomToggle" class="toggle"></button></div>
 </nav>
 
 <!-- data -->
@@ -154,44 +205,43 @@
 <script>
 const G = window.G || {};
 const GAMES = {
-  states:    {title:"US States",        em:"🇺🇸", type:"map",  prompt:"Which state is highlighted?",     data:()=>G.states},
-  countries: {title:"World Countries",  em:"🌍", type:"map",  prompt:"Which country is highlighted?",   data:()=>G.countries, zoom:true},
-  counties:  {title:"England Counties", em:"🏴", type:"map",  prompt:"Which county is highlighted?",    data:()=>G.counties},
-  flags:     {title:"Name the Flag",    em:"🚩", type:"flag", prompt:"Which country's flag is this?",   data:()=>G.flags},
+  states:    {title:"US States",        em:"🇺🇸", type:"map",  prompt:"Which state is highlighted?",   data:()=>G.states},
+  countries: {title:"World Countries",  em:"🌍", type:"map",  prompt:"Which country is highlighted?", data:()=>G.countries},
+  counties:  {title:"England Counties", em:"🏴", type:"map",  prompt:"Which county is highlighted?",  data:()=>G.counties},
+  flags:     {title:"Name the Flag",    em:"🚩", type:"flag", prompt:"Which country's flag is this?", data:()=>G.flags},
 };
 const ORDER = ["states","countries","counties","flags"];
+const DIFF_CAPTION = {
+  easy:   "Tap one of 6 options.",
+  medium: "Type the answer — suggestions help with spelling.",
+  hard:   "Type it from memory, no suggestions. 💡 gives a hint.",
+};
 
 const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")
   .replace(/['’.,\-]/g,"").replace(/\s+/g," ").trim();
-
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
 const $ = id => document.getElementById(id);
+
 const svg=$("map"), flagImg=$("flag");
 const elTitle=$("title"), elPrompt=$("prompt"), elStreak=$("streak"), elBest=$("best"), elScore=$("score");
-const elAnswer=$("answer"), elFeedback=$("feedback"), elSuggest=$("suggest"), elKb=$("kb");
+const elAnswer=$("answer"), elFeedback=$("feedback"), elSuggest=$("suggest"), elOptions=$("options"), elKb=$("kb");
+
+// ---- settings ----
+let difficulty = localStorage.getItem("nts_diff") || "medium";
+let zoomOn = localStorage.getItem("nts_zoom") !== "off";
 
 // ---- per-game state ----
 let gameId, game, codeList=[], nameByCode={}, NAME_TO_CODE={}, NAMES=[], paths={};
-let bag=[], current=null, answered=false, buffer="";
+let bag=[], current=null, answered=false, buffer="", lastGuess=null, hintLevel=0;
 let streak=0, correct=0, total=0, best=0;
-let fullVB=null, rafId=0;
-const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+let fullVB=null, rafId=0, zoomLevels=[1], zoomIdx=0, curCenter=null;
 
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function addName(name,code){ NAME_TO_CODE[norm(name)] = code; }
+function bestKey(){ return "nts_best_"+gameId+"_"+difficulty; }
 
-function buildMap(d){
-  svg.innerHTML=""; paths={};
-  codeList.forEach(code=>{
-    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
-    p.setAttribute("d", d[code].d); p.dataset.code=code;
-    svg.appendChild(p); paths[code]=p;
-  });
-  const bb=svg.getBBox();
-  const pad=Math.max(bb.width,bb.height)*0.02;
-  fullVB={x:bb.x-pad, y:bb.y-pad, w:bb.width+2*pad, h:bb.height+2*pad};
-  setVB(fullVB);
-}
 function setVB(v){ svg.setAttribute("viewBox", `${v.x} ${v.y} ${v.w} ${v.h}`); }
+function curVB(){ const v=svg.viewBox.baseVal; return {x:v.x,y:v.y,w:v.width,h:v.height}; }
 function animateVB(from,to,dur){
   cancelAnimationFrame(rafId);
   const t0=performance.now(), ease=t=>1-Math.pow(1-t,3);
@@ -203,8 +253,26 @@ function animateVB(from,to,dur){
   })(t0);
 }
 
+function buildMap(d){
+  svg.innerHTML=""; paths={};
+  codeList.forEach(code=>{
+    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.setAttribute("d", d[code].d); p.dataset.code=code;
+    svg.appendChild(p); paths[code]=p;
+  });
+  const bb=svg.getBBox(), pad=Math.max(bb.width,bb.height)*0.02;
+  fullVB={x:bb.x-pad, y:bb.y-pad, w:bb.width+2*pad, h:bb.height+2*pad};
+  setVB(fullVB);
+}
+
+function applyMode(){
+  document.body.classList.remove("mode-easy","mode-medium","mode-hard");
+  document.body.classList.add("mode-"+difficulty);
+}
+
 function loadGame(id){
   gameId=id; game=GAMES[id];
+  applyMode();
   document.body.classList.toggle("flagmode", game.type==="flag");
   const d=game.data();
   nameByCode={}; NAME_TO_CODE={};
@@ -217,44 +285,57 @@ function loadGame(id){
     d.forEach(x=>{ nameByCode[x.c]=x.n; addName(x.n,x.c); (x.alt||[]).forEach(a=>addName(a,x.c)); });
   }
   NAMES = codeList.map(c=>nameByCode[c]);
-  best=+(localStorage.getItem("nts_best_"+id)||0);
+  best=+(localStorage.getItem(bestKey())||0);
   streak=0; correct=0; total=0; bag=[];
   elBest.textContent=best; elStreak.textContent=0; elScore.textContent="0/0";
-  elTitle.textContent=game.title; elPrompt.textContent=game.prompt;
+  elTitle.textContent=game.title;
   localStorage.setItem("nts_last", id);
-  closeMenu(); nextQuestion();
+  updateZoomCtl(); closeMenu(); nextQuestion();
 }
 
+// ---- highlight + zoom ----
+function vbForLevel(s){
+  const vw=fullVB.w*s, vh=fullVB.h*s;
+  const cx=clamp(curCenter.x, fullVB.x+vw/2, fullVB.x+fullVB.w-vw/2);
+  const cy=clamp(curCenter.y, fullVB.y+vh/2, fullVB.y+fullVB.h-vh/2);
+  return {x:cx-vw/2, y:cy-vh/2, w:vw, h:vh};
+}
 function highlight(code){
   cancelAnimationFrame(rafId);
   [...svg.querySelectorAll(".locator")].forEach(n=>n.remove());
   Object.values(paths).forEach(p=>p.setAttribute("class",""));
-  const p=paths[code]; p.setAttribute("class","hi");
-  const rb=p.getBBox();
-  if(game.zoom && fullVB){
-    // zoom amount scales with country size: small country -> zoom a lot, big -> a little
+  paths[code].setAttribute("class","hi");
+  const rb=paths[code].getBBox();
+  curCenter={x:rb.x+rb.width/2, y:rb.y+rb.height/2};
+  if(zoomOn && fullVB){
     const targetFrac=0.5, minS=0.08;
     const frac=Math.max(rb.width/fullVB.w, rb.height/fullVB.h);
     const s=Math.min(1, Math.max(minS, frac/targetFrac));
-    const vw=fullVB.w*s, vh=fullVB.h*s;
-    const cx=clamp(rb.x+rb.width/2, fullVB.x+vw/2, fullVB.x+fullVB.w-vw/2);
-    const cy=clamp(rb.y+rb.height/2, fullVB.y+vh/2, fullVB.y+fullVB.h-vh/2);
-    setVB(fullVB); // start from the whole map...
-    animateVB(fullVB, {x:cx-vw/2, y:cy-vh/2, w:vw, h:vh}, 550); // ...then zoom in
-    return;
-  }
-  const vb=svg.viewBox.baseVal;
-  const diag=Math.hypot(vb.width,vb.height), rdiag=Math.hypot(rb.width,rb.height);
-  if(rdiag < diag*0.05){
-    const r=diag*0.045, cx=rb.x+rb.width/2, cy=rb.y+rb.height/2;
-    const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
-    c.setAttribute("cx",cx); c.setAttribute("cy",cy); c.setAttribute("r",r);
-    c.setAttribute("class","locator"); c.style.transformOrigin=`${cx}px ${cy}px`;
-    svg.appendChild(c);
+    zoomLevels = s>=0.97 ? [1] : [s, Math.sqrt(s), 1];
+    zoomIdx=0;
+    setVB(fullVB);
+    animateVB(fullVB, vbForLevel(zoomLevels[0]), 550);
+  } else {
+    setVB(fullVB);
+    const diag=Math.hypot(fullVB.w,fullVB.h), rdiag=Math.hypot(rb.width,rb.height);
+    if(rdiag < diag*0.05){
+      const r=diag*0.045, cx=curCenter.x, cy=curCenter.y;
+      const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+      c.setAttribute("cx",cx); c.setAttribute("cy",cy); c.setAttribute("r",r);
+      c.setAttribute("class","locator"); c.style.transformOrigin=`${cx}px ${cy}px`;
+      svg.appendChild(c);
+    }
   }
 }
+function stepZoom(delta){
+  if(!zoomOn || game.type!=="map" || !curCenter) return;
+  zoomIdx=clamp(zoomIdx+delta, 0, zoomLevels.length-1);
+  animateVB(curVB(), vbForLevel(zoomLevels[zoomIdx]), 300);
+}
 function revealCorrect(code){ if(paths[code]) paths[code].setAttribute("class","ok"); }
+function updateZoomCtl(){ $("zoomctl").style.display = (game.type==="map" && zoomOn) ? "flex" : "none"; }
 
+// ---- autocomplete + typing display ----
 function computeMatches(q){
   const n=norm(q); if(!n) return [];
   const starts=[], contains=[];
@@ -263,13 +344,12 @@ function computeMatches(q){
   });
   return starts.concat(contains).slice(0,6);
 }
-
 function render(){
   if(buffer){ elAnswer.textContent=buffer; elAnswer.classList.remove("empty"); }
   else { elAnswer.textContent="Type your answer…"; elAnswer.classList.add("empty"); }
   if(!answered){ const c=document.createElement("span"); c.className="caret"; elAnswer.appendChild(c); }
   elSuggest.innerHTML="";
-  if(!answered){
+  if(!answered && difficulty==="medium"){
     computeMatches(buffer).forEach((name,i)=>{
       const b=document.createElement("button");
       b.className="chip"+(i===0?"":" alt"); b.textContent=name;
@@ -279,28 +359,58 @@ function render(){
   }
 }
 
-function nextQuestion(){
-  if(bag.length===0) bag=shuffle(codeList.slice());
-  current=bag.pop(); answered=false; buffer="";
-  if(game.type==="map") highlight(current);
-  else flagImg.src="flags/"+current+".svg";
-  elAnswer.classList.remove("ok","bad");
-  elFeedback.textContent=""; elFeedback.className="feedback";
-  setEnterLabel(); render();
+// ---- easy-mode options ----
+let optionBtns={};
+function buildOptions(){
+  elOptions.innerHTML=""; optionBtns={};
+  const others=shuffle(codeList.filter(c=>c!==current)).slice(0,5);
+  shuffle([current,...others]).forEach(code=>{
+    const b=document.createElement("button"); b.className="option"; b.textContent=nameByCode[code];
+    b.addEventListener("click", ()=>{ if(!answered) evaluateGuess(code); });
+    elOptions.appendChild(b); optionBtns[code]=b;
+  });
+}
+function markOptions(){
+  if(optionBtns[current]) optionBtns[current].classList.add("ok");
+  if(lastGuess && lastGuess!==current && optionBtns[lastGuess]) optionBtns[lastGuess].classList.add("bad");
 }
 
-function submit(){
-  if(answered) return;
-  if(!buffer.trim()) return;
-  let guessCode = NAME_TO_CODE[norm(buffer)];
-  if(!guessCode){ const m=computeMatches(buffer); if(m.length) guessCode=NAME_TO_CODE[norm(m[0])]; }
-  if(!guessCode){ elFeedback.textContent="Keep typing…"; elFeedback.className="feedback muted"; return; }
-  answered=true; total++;
+// ---- hint ----
+function useHint(){
+  if(answered || difficulty==="easy") return;
+  const letters=nameByCode[current].replace(/[^A-Za-z]/g,"").length;
+  hintLevel=Math.min(hintLevel+1, letters);
+  renderHint();
+}
+function renderHint(){
+  if(hintLevel<=0){ elPrompt.textContent=game.prompt; return; }
+  let count=0, out="";
+  for(const ch of nameByCode[current]){
+    if(/[A-Za-z]/.test(ch)){ out+=(count<hintLevel?ch:"_")+" "; count++; }
+    else out+="  ";
+  }
+  elPrompt.textContent="Hint: "+out.trim();
+}
+
+// ---- round flow ----
+function nextQuestion(){
+  if(bag.length===0) bag=shuffle(codeList.slice());
+  current=bag.pop(); answered=false; buffer=""; lastGuess=null; hintLevel=0;
+  if(game.type==="map") highlight(current); else flagImg.src="flags/"+current+".svg";
+  elAnswer.classList.remove("ok","bad");
+  elFeedback.textContent=""; elFeedback.className="feedback";
+  elPrompt.textContent=game.prompt;
+  setEnterLabel();
+  if(difficulty==="easy") buildOptions(); else render();
+}
+
+function evaluateGuess(guessCode){
+  if(answered || !guessCode) return;
+  answered=true; total++; lastGuess=guessCode;
   const answerName=nameByCode[current];
-  buffer=nameByCode[guessCode];
   if(guessCode===current){
     correct++; streak++;
-    if(streak>best){ best=streak; localStorage.setItem("nts_best_"+gameId,best); elBest.textContent=best; }
+    if(streak>best){ best=streak; localStorage.setItem(bestKey(),best); elBest.textContent=best; }
     if(game.type==="map") revealCorrect(current);
     elAnswer.classList.add("ok");
     elFeedback.textContent="✓ Correct — "+answerName; elFeedback.className="feedback ok";
@@ -310,8 +420,18 @@ function submit(){
     elAnswer.classList.add("bad");
     elFeedback.textContent="✗ That's "+answerName; elFeedback.className="feedback bad";
   }
+  buffer=answerName;
   elStreak.textContent=streak; elScore.textContent=correct+"/"+total;
-  setEnterLabel(); render();
+  setEnterLabel();
+  if(difficulty==="easy") markOptions(); else render();
+}
+
+function submit(){
+  if(answered || !buffer.trim()) return;
+  let g=NAME_TO_CODE[norm(buffer)];
+  if(!g && difficulty==="medium"){ const m=computeMatches(buffer); if(m.length) g=NAME_TO_CODE[norm(m[0])]; }
+  if(!g){ elFeedback.textContent="Keep typing…"; elFeedback.className="feedback muted"; return; }
+  evaluateGuess(g);
 }
 
 // ---- on-screen keyboard ----
@@ -319,12 +439,14 @@ const LAYOUT=[
   ["Q","W","E","R","T","Y","U","I","O","P"],
   ["A","S","D","F","G","H","J","K","L"],
   ["Z","X","C","V","B","N","M","back"],
-  ["space","enter"]
+  ["hint","space","enter"]
 ];
 let enterBtn=null;
 function setEnterLabel(){ if(enterBtn) enterBtn.textContent = answered ? "Next" : "Enter"; }
 function handleKey(act,ch){
+  if(act==="hint"){ useHint(); return; }
   if(answered){ if(act==="enter") nextQuestion(); return; }
+  if(difficulty==="easy") return;
   if(act==="char"){ if(buffer.replace(/\s/g,"").length<28) buffer += ch; }
   else if(act==="space"){ if(buffer && !buffer.endsWith(" ")) buffer+=" "; }
   else if(act==="back"){ buffer=buffer.slice(0,-1); }
@@ -336,6 +458,7 @@ LAYOUT.forEach(row=>{
   row.forEach(key=>{
     const b=document.createElement("button"); b.className="key";
     if(key==="back"){ b.textContent="⌫"; b.classList.add("wide"); b.dataset.act="back"; }
+    else if(key==="hint"){ b.textContent="💡"; b.classList.add("hint"); b.dataset.act="hint"; }
     else if(key==="space"){ b.textContent="space"; b.classList.add("space"); b.dataset.act="space"; }
     else if(key==="enter"){ b.textContent="Enter"; b.classList.add("go"); b.dataset.act="enter"; enterBtn=b; }
     else { b.textContent=key; b.dataset.act="char"; b.dataset.ch=key; }
@@ -348,13 +471,16 @@ document.addEventListener("keydown", e=>{
   if($("menu").classList.contains("open")){ if(e.key==="Escape") closeMenu(); return; }
   if(e.metaKey||e.ctrlKey||e.altKey) return;
   if(e.key==="Enter"){ e.preventDefault(); handleKey("enter"); }
+  else if(difficulty==="easy") return;
   else if(e.key==="Backspace"){ e.preventDefault(); handleKey("back"); }
   else if(e.key===" "){ e.preventDefault(); handleKey("space"); }
   else if(/^[a-zA-Z]$/.test(e.key)){ handleKey("char", e.key.toUpperCase()); }
 });
+$("zoomIn").addEventListener("click", ()=>stepZoom(-1));
+$("zoomOut").addEventListener("click", ()=>stepZoom(1));
 
-// ---- menu ----
-function openMenu(){ buildMenu(); $("menu").classList.add("open"); $("backdrop").classList.add("open"); }
+// ---- menu + settings ----
+function openMenu(){ buildMenu(); updateSettingsUI(); $("menu").classList.add("open"); $("backdrop").classList.add("open"); }
 function closeMenu(){ $("menu").classList.remove("open"); $("backdrop").classList.remove("open"); }
 function buildMenu(){
   const list=$("gameList"); list.innerHTML="";
@@ -362,12 +488,27 @@ function buildMenu(){
     const g=GAMES[id];
     const b=document.createElement("button");
     b.className="gameItem"+(id===gameId?" active":"");
-    const bs=+(localStorage.getItem("nts_best_"+id)||0);
+    const bs=+(localStorage.getItem("nts_best_"+id+"_"+difficulty)||0);
     b.innerHTML=`<span class="em">${g.em}</span><span>${g.title}</span><span class="meta">best<br>${bs}</span>`;
     b.addEventListener("click", ()=>loadGame(id));
     list.appendChild(b);
   });
 }
+function updateSettingsUI(){
+  [...$("diffSeg").children].forEach(b=>b.classList.toggle("active", b.dataset.d===difficulty));
+  $("diffCaption").textContent=DIFF_CAPTION[difficulty];
+  $("zoomToggle").classList.toggle("on", zoomOn);
+}
+[...$("diffSeg").children].forEach(b=>b.addEventListener("click", ()=>{
+  if(b.dataset.d===difficulty){ updateSettingsUI(); return; }
+  difficulty=b.dataset.d; localStorage.setItem("nts_diff", difficulty);
+  updateSettingsUI(); buildMenu(); loadGame(gameId);
+}));
+$("zoomToggle").addEventListener("click", ()=>{
+  zoomOn=!zoomOn; localStorage.setItem("nts_zoom", zoomOn?"on":"off");
+  updateSettingsUI(); updateZoomCtl();
+  if(game.type==="map") highlight(current);
+});
 $("menuBtn").addEventListener("click", openMenu);
 $("backdrop").addEventListener("click", closeMenu);
 
