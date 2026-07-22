@@ -18,14 +18,14 @@ A dead-simple geography guessing game. It shows you something on a map (or a fla
 
 ## Difficulty (☰ menu)
 
-- **Easy** — tap one of 6 options. Good for hard sets like flags.
-- **Medium** *(default)* — type the answer; suggestions appear to help spelling; Enter takes the top one.
-- **Hard** — type it from memory with no suggestions; the **💡 key** reveals the first letter (tap again for more).
+- **Hard** *(default)* — type the answer; suggestions appear to help spelling; Enter takes the top one. The **💡 key** reveals the first letter (tap again for more).
+- **Easy** — tap one of 6 options, then a **Next** button. Good for hard sets like flags.
 
 ## Zoom (map games)
 
-- By default the map **zooms to the highlighted answer**, scaled to its size — tiny countries zoom in close, big ones barely at all — then you can step out with the on-map **+ / −** buttons (Focus → Mid → Full).
-- Turn zoom off in the ☰ menu's **Options**; then small regions get a **locator ring** instead.
+- On the **World map**, each question **zooms to the highlighted country**, scaled to its size — tiny countries zoom in close, big ones barely at all. Turn this off in the ☰ menu's **Options**.
+- On **all** map games you can zoom manually with the on-map **+ / −** buttons (Focus → Mid → Full). The US and England maps do not auto-zoom.
+- A **locator ring** is drawn around the highlighted region whenever it's small, so tiny countries/counties/states are always easy to spot.
 
 Common alternate names are accepted (e.g. *USA*, *UK*, *Holland*, *Burma*, *Swaziland*), and accents/apostrophes are ignored so *Cote dIvoire* works.
 
