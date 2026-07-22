@@ -16,6 +16,15 @@ A dead-simple geography guessing game. It shows you something on a map (or a fla
 - Correct → streak and score go up. Wrong → it shows the right answer.
 - **Best streak is saved per game and per difficulty** in your browser.
 
+## Install it like an app (PWA)
+
+The site is an installable Progressive Web App: add it to your phone's home screen and it behaves like a native app — full-screen, its own icon, and it **works offline** after the first load. No app store, no account, no ads.
+
+- **iPhone/iPad (Safari):** open the URL → Share → **Add to Home Screen**.
+- **Android (Chrome):** open the URL → tap the **Install** prompt (or menu → **Install app**).
+
+To share it, just send the link — people install from there.
+
 ## Difficulty (☰ menu)
 
 - **Hard** *(default)* — type the answer; suggestions appear to help spelling; Enter takes the top one. The **💡 key** reveals the first letter (tap again for more).
@@ -32,13 +41,18 @@ Common alternate names are accepted (e.g. *USA*, *UK*, *Holland*, *Burma*, *Swaz
 ## Project layout
 
 ```
-index.html        game engine + menu (self-contained)
-data/states.js    US state shapes
-data/countries.js world country shapes
-data/counties.js  England ceremonial county shapes
-data/flags.js     country list for the flag game
-flags/<iso2>.svg  flag images
+index.html            game engine + menu
+data/states.js        US state shapes
+data/countries.js     world country shapes
+data/counties.js      England ceremonial county shapes
+data/flags.js         country list for the flag game
+flags/<iso2>.svg      flag images
+manifest.webmanifest  PWA manifest
+sw.js                 service worker (offline cache)
+icons/                app icons
 ```
+
+If you change any assets, bump the `CACHE` version string in `sw.js` so already-installed users pick up the update.
 
 ## Credits
 
