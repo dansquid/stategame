@@ -102,10 +102,23 @@
   }
   .option.ok{background:#1c4634; border-color:var(--ok); color:#8ff0c4}
   .option.bad{background:#4a2530; border-color:var(--bad); color:#ffb3bc}
-  .nextBtn{flex:0 0 auto; display:none; align-self:center; min-width:200px; margin-top:8px;
-    padding:15px 22px; border:1px solid transparent; border-radius:12px; background:var(--accent); color:var(--accent-ink);
+  .easyActions{flex:0 0 auto; display:none; gap:8px; align-items:stretch; margin-top:8px}
+  .nextBtn{flex:1.3 1 0; min-width:0;
+    padding:15px 14px; border:1px solid transparent; border-radius:12px; background:var(--accent); color:var(--accent-ink);
     font-size:18px; font-weight:700; cursor:pointer}
   .nextBtn:disabled{background:var(--panel-2); color:var(--muted); border:1px solid var(--line); cursor:default}
+  .showBtn{flex:1 1 0; min-width:0; padding:15px 8px; border:1px solid var(--line); border-radius:12px;
+    background:var(--panel-2); color:var(--muted); font-size:13px; font-weight:600; cursor:pointer;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+  .mapModal{position:fixed; z-index:32; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:min(560px,94vw); display:none; flex-direction:column; gap:10px;
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:14px 14px calc(14px + env(safe-area-inset-bottom))}
+  .mapModal.open{display:flex}
+  .mapModalBoard{position:relative; background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
+    padding:8px; height:min(58vh,420px); display:flex; align-items:center; justify-content:center}
+  .mapModalBoard svg{max-width:100%; max-height:100%}
 
   .kb{flex:0 0 auto; display:flex; flex-direction:column; gap:5px}
   .krow{display:flex; gap:5px; justify-content:center}
@@ -124,7 +137,7 @@
   #options{display:none}
   body.mode-easy #answer, body.mode-easy #suggest, body.mode-easy #kb{display:none}
   body.mode-easy #options{display:grid}
-  body.mode-easy #nextBtn{display:block}
+  body.mode-easy #easyActions{display:flex}
 
   /* menu */
   .backdrop{position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:30; display:none}
@@ -220,7 +233,11 @@
   <div id="feedback" class="feedback"></div>
   <div id="suggest" class="suggest"></div>
   <div id="options" class="options"></div>
-  <button id="nextBtn" class="nextBtn">Next →</button>
+  <div id="easyActions" class="easyActions">
+    <button id="showWrong" class="showBtn" style="display:none"></button>
+    <button id="nextBtn" class="nextBtn">Next →</button>
+    <button id="showCorrect" class="showBtn" style="display:none"></button>
+  </div>
   <div id="kb" class="kb"></div>
 </div>
 
@@ -242,6 +259,18 @@
     <button id="viewLb" class="lbBtn">🏆 View leaderboard</button>
   </div>
 </nav>
+
+<div id="mapModalBg" class="backdrop"></div>
+<div id="mapModal" class="mapModal">
+  <div class="lbHead"><h2 id="mapModalTitle">🌍</h2><button id="mapModalClose" class="lbClose" aria-label="Close">✕</button></div>
+  <div class="mapModalBoard">
+    <svg id="mapModalSvg" viewBox="0 0 2000 1001" role="img" aria-label="Country location"></svg>
+    <div class="zoomctl" style="display:flex">
+      <button id="mapModalIn" aria-label="Zoom in">+</button>
+      <button id="mapModalOut" aria-label="Zoom out">−</button>
+    </div>
+  </div>
+</div>
 
 <div id="lbBackdrop" class="backdrop"></div>
 <div id="lbPanel" class="lbPanel">
@@ -296,39 +325,86 @@ const LB_ON = !!LB_API;
 let playerName = localStorage.getItem("nts_name") || "";
 
 // ---- per-game state ----
-let gameId, game, codeList=[], nameByCode={}, NAME_TO_CODE={}, NAMES=[], paths={};
+let gameId, game, codeList=[], nameByCode={}, NAME_TO_CODE={}, NAMES=[];
 let bag=[], current=null, answered=false, buffer="", lastGuess=null, hintLevel=0;
 let streak=0, correct=0, total=0, best=0;
-let fullVB=null, rafId=0, zoomLevels=[1], zoomIdx=0, curCenter=null;
 
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function addName(name,code){ NAME_TO_CODE[norm(name)] = code; }
 function bestKey(){ return "nts_best_"+gameId+"_"+difficulty; }
 
-function setVB(v){ svg.setAttribute("viewBox", `${v.x} ${v.y} ${v.w} ${v.h}`); }
-function curVB(){ const v=svg.viewBox.baseVal; return {x:v.x,y:v.y,w:v.width,h:v.height}; }
-function animateVB(from,to,dur){
-  cancelAnimationFrame(rafId);
-  const t0=performance.now(), ease=t=>1-Math.pow(1-t,3);
-  (function step(now){
-    const t=Math.min(1,(now-t0)/dur), e=ease(t);
-    setVB({x:from.x+(to.x-from.x)*e, y:from.y+(to.y-from.y)*e,
-           w:from.w+(to.w-from.w)*e, h:from.h+(to.h-from.h)*e});
-    if(t<1) rafId=requestAnimationFrame(step);
-  })(t0);
+// A self-contained map + zoom view bound to one <svg>. Used by the main board
+// and by the "show me on the map" popup, so both share identical zoom behaviour.
+function createMapView(svgEl){
+  const st={ paths:{}, fullVB:null, zoomLevels:[1], zoomIdx:0, curCenter:null, rafId:0, autozoom:false };
+  const setVB = v => svgEl.setAttribute("viewBox", `${v.x} ${v.y} ${v.w} ${v.h}`);
+  const curVB = () => { const v=svgEl.viewBox.baseVal; return {x:v.x,y:v.y,w:v.width,h:v.height}; };
+  function animateVB(from,to,dur){
+    cancelAnimationFrame(st.rafId);
+    const t0=performance.now(), ease=t=>1-Math.pow(1-t,3);
+    (function step(now){
+      const t=Math.min(1,(now-t0)/dur), e=ease(t);
+      setVB({x:from.x+(to.x-from.x)*e, y:from.y+(to.y-from.y)*e,
+             w:from.w+(to.w-from.w)*e, h:from.h+(to.h-from.h)*e});
+      if(t<1) st.rafId=requestAnimationFrame(step);
+    })(t0);
+  }
+  function build(d, codes){
+    svgEl.innerHTML=""; st.paths={};
+    codes.forEach(code=>{
+      const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+      p.setAttribute("d", d[code].d); p.dataset.code=code;
+      svgEl.appendChild(p); st.paths[code]=p;
+    });
+    const bb=svgEl.getBBox(), pad=Math.max(bb.width,bb.height)*0.02;
+    st.fullVB={x:bb.x-pad, y:bb.y-pad, w:bb.width+2*pad, h:bb.height+2*pad};
+    setVB(st.fullVB);
+  }
+  function vbForLevel(s){
+    const vw=st.fullVB.w*s, vh=st.fullVB.h*s;
+    const cx=clamp(st.curCenter.x, st.fullVB.x+vw/2, st.fullVB.x+st.fullVB.w-vw/2);
+    const cy=clamp(st.curCenter.y, st.fullVB.y+vh/2, st.fullVB.y+st.fullVB.h-vh/2);
+    return {x:cx-vw/2, y:cy-vh/2, w:vw, h:vh};
+  }
+  function highlight(code){
+    cancelAnimationFrame(st.rafId);
+    [...svgEl.querySelectorAll(".locator")].forEach(n=>n.remove());
+    Object.values(st.paths).forEach(p=>p.setAttribute("class",""));
+    st.paths[code].setAttribute("class","hi");
+    const rb=st.paths[code].getBBox();
+    st.curCenter={x:rb.x+rb.width/2, y:rb.y+rb.height/2};
+    const targetFrac=0.5, minS=0.08;
+    const frac=Math.max(rb.width/st.fullVB.w, rb.height/st.fullVB.h);
+    const s=Math.min(1, Math.max(minS, frac/targetFrac));
+    st.zoomLevels = s>=0.97 ? [1] : [s, Math.sqrt(s), 1];
+    const auto=!!st.autozoom;
+    st.zoomIdx = auto ? 0 : st.zoomLevels.length-1;
+    const targetVB=vbForLevel(st.zoomLevels[st.zoomIdx]);
+    if(auto){ setVB(st.fullVB); animateVB(st.fullVB, targetVB, 550); } else setVB(st.fullVB);
+    const primary = auto ? targetVB : st.fullVB;
+    const pdiag=Math.hypot(primary.w,primary.h), rdiag=Math.hypot(rb.width,rb.height);
+    if(rdiag < pdiag*0.14){
+      const r=Math.max(rdiag*1.1, pdiag*0.05);
+      const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+      c.setAttribute("cx",st.curCenter.x); c.setAttribute("cy",st.curCenter.y); c.setAttribute("r",r);
+      c.setAttribute("class","locator"); c.style.transformOrigin=`${st.curCenter.x}px ${st.curCenter.y}px`;
+      svgEl.appendChild(c);
+    }
+  }
+  function stepZoom(delta){
+    if(!st.curCenter) return;
+    st.zoomIdx=clamp(st.zoomIdx+delta, 0, st.zoomLevels.length-1);
+    animateVB(curVB(), vbForLevel(st.zoomLevels[st.zoomIdx]), 300);
+  }
+  return {
+    build, highlight, stepZoom,
+    revealCorrect: code => { if(st.paths[code]) st.paths[code].setAttribute("class","ok"); },
+    set autozoom(v){ st.autozoom=v; },
+  };
 }
 
-function buildMap(d){
-  svg.innerHTML=""; paths={};
-  codeList.forEach(code=>{
-    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
-    p.setAttribute("d", d[code].d); p.dataset.code=code;
-    svg.appendChild(p); paths[code]=p;
-  });
-  const bb=svg.getBBox(), pad=Math.max(bb.width,bb.height)*0.02;
-  fullVB={x:bb.x-pad, y:bb.y-pad, w:bb.width+2*pad, h:bb.height+2*pad};
-  setVB(fullVB);
-}
+const mainView = createMapView(svg);
+function buildMap(d){ mainView.build(d, codeList); }
 
 function applyMode(){
   document.body.classList.remove("mode-easy","mode-medium","mode-hard");
@@ -358,47 +434,13 @@ function loadGame(id){
   updateZoomCtl(); closeMenu(); nextQuestion();
 }
 
-// ---- highlight + zoom ----
-function vbForLevel(s){
-  const vw=fullVB.w*s, vh=fullVB.h*s;
-  const cx=clamp(curCenter.x, fullVB.x+vw/2, fullVB.x+fullVB.w-vw/2);
-  const cy=clamp(curCenter.y, fullVB.y+vh/2, fullVB.y+fullVB.h-vh/2);
-  return {x:cx-vw/2, y:cy-vh/2, w:vw, h:vh};
-}
+// ---- highlight + zoom (main board delegates to mainView) ----
 function highlight(code){
-  cancelAnimationFrame(rafId);
-  [...svg.querySelectorAll(".locator")].forEach(n=>n.remove());
-  Object.values(paths).forEach(p=>p.setAttribute("class",""));
-  paths[code].setAttribute("class","hi");
-  const rb=paths[code].getBBox();
-  curCenter={x:rb.x+rb.width/2, y:rb.y+rb.height/2};
-  // zoom levels are always available for the manual +/- buttons
-  const targetFrac=0.5, minS=0.08;
-  const frac=Math.max(rb.width/fullVB.w, rb.height/fullVB.h);
-  const s=Math.min(1, Math.max(minS, frac/targetFrac));
-  zoomLevels = s>=0.97 ? [1] : [s, Math.sqrt(s), 1];
-  const auto = !!(game.autozoom && zoomOn);   // auto-zoom only on games that opt in (World map)
-  zoomIdx = auto ? 0 : zoomLevels.length-1;    // else start at full; manual + zooms in
-  const targetVB = vbForLevel(zoomLevels[zoomIdx]);
-  if(auto){ setVB(fullVB); animateVB(fullVB, targetVB, 550); }
-  else setVB(fullVB);
-  // draw a locator ring when the region is small within the view being shown
-  const primary = auto ? targetVB : fullVB;
-  const pdiag=Math.hypot(primary.w,primary.h), rdiag=Math.hypot(rb.width,rb.height);
-  if(rdiag < pdiag*0.14){
-    const r=Math.max(rdiag*1.1, pdiag*0.05);
-    const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
-    c.setAttribute("cx",curCenter.x); c.setAttribute("cy",curCenter.y); c.setAttribute("r",r);
-    c.setAttribute("class","locator"); c.style.transformOrigin=`${curCenter.x}px ${curCenter.y}px`;
-    svg.appendChild(c);
-  }
+  mainView.autozoom = !!(game.autozoom && zoomOn);   // auto-zoom only on the World map
+  mainView.highlight(code);
 }
-function stepZoom(delta){
-  if(game.type!=="map" || !curCenter) return;
-  zoomIdx=clamp(zoomIdx+delta, 0, zoomLevels.length-1);
-  animateVB(curVB(), vbForLevel(zoomLevels[zoomIdx]), 300);
-}
-function revealCorrect(code){ if(paths[code]) paths[code].setAttribute("class","ok"); }
+function stepZoom(delta){ if(game.type==="map") mainView.stepZoom(delta); }
+function revealCorrect(code){ mainView.revealCorrect(code); }
 function updateZoomCtl(){ $("zoomctl").style.display = (game.type==="map") ? "flex" : "none"; }
 
 // ---- autocomplete + typing display ----
@@ -467,6 +509,7 @@ function nextQuestion(){
   elFeedback.textContent=""; elFeedback.className="feedback";
   elPrompt.textContent=game.prompt;
   $("nextBtn").disabled=true;
+  $("showWrong").style.display="none"; $("showCorrect").style.display="none";
   setEnterLabel();
   if(difficulty==="easy") buildOptions(); else render();
 }
@@ -490,7 +533,7 @@ function evaluateGuess(guessCode){
   buffer=answerName;
   elStreak.textContent=streak; elScore.textContent=correct+"/"+total;
   setEnterLabel();
-  if(difficulty==="easy"){ markOptions(); $("nextBtn").disabled=false; } else render();
+  if(difficulty==="easy"){ markOptions(); $("nextBtn").disabled=false; setupShowButtons(guessCode); } else render();
 }
 
 function submit(){
@@ -634,6 +677,37 @@ $("viewLb").addEventListener("click", openLb);
 $("lbClose").addEventListener("click", closeLb);
 $("lbBackdrop").addEventListener("click", closeLb);
 [...$("lbDiffSeg").children].forEach(b=>b.addEventListener("click", ()=>{ lbDiff=b.dataset.d; updateLbDiff(); loadBoard(); }));
+
+// ---- "show me on the map" popup (flag game, easy mode) ----
+let popupView=null, popupBuilt=false;
+function showOnMap(mapCode, name){
+  $("mapModalTitle").textContent = "🌍 " + name;
+  $("mapModal").classList.add("open"); $("mapModalBg").classList.add("open");
+  requestAnimationFrame(()=>{
+    if(!popupView) popupView=createMapView($("mapModalSvg"));
+    if(!popupBuilt){ popupView.build(G.countries, Object.keys(G.countries)); popupBuilt=true; }
+    popupView.autozoom = zoomOn;
+    popupView.highlight(mapCode);
+  });
+}
+function closeMapModal(){ $("mapModal").classList.remove("open"); $("mapModalBg").classList.remove("open"); }
+function setupShowButtons(guessCode){
+  const sw=$("showWrong"), sc=$("showCorrect");
+  sw.style.display="none"; sc.style.display="none";
+  if(gameId!=="flags") return;
+  const cMap=current.toUpperCase();
+  if(G.countries[cMap]){ sc.style.display=""; sc.textContent="📍 "+nameByCode[current]; sc.dataset.code=cMap; sc.dataset.name=nameByCode[current]; }
+  if(guessCode!==current){
+    const gMap=guessCode.toUpperCase();
+    if(G.countries[gMap]){ sw.style.display=""; sw.textContent="📍 "+nameByCode[guessCode]; sw.dataset.code=gMap; sw.dataset.name=nameByCode[guessCode]; }
+  }
+}
+$("showCorrect").addEventListener("click", ()=>{ const b=$("showCorrect"); if(b.dataset.code) showOnMap(b.dataset.code, b.dataset.name); });
+$("showWrong").addEventListener("click", ()=>{ const b=$("showWrong"); if(b.dataset.code) showOnMap(b.dataset.code, b.dataset.name); });
+$("mapModalClose").addEventListener("click", closeMapModal);
+$("mapModalBg").addEventListener("click", closeMapModal);
+$("mapModalIn").addEventListener("click", ()=>{ if(popupView) popupView.stepZoom(-1); });
+$("mapModalOut").addEventListener("click", ()=>{ if(popupView) popupView.stepZoom(1); });
 
 // ---- start ----
 const last=localStorage.getItem("nts_last");

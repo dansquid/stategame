@@ -7,7 +7,7 @@ A dead-simple geography guessing game. It shows you something on a map (or a fla
 - **US States** — name the highlighted US state (all 50).
 - **World Countries** — name the highlighted country (184 on the map).
 - **England Counties** — name the highlighted ceremonial county (47).
-- **Name the Flag** — a flag is shown; name the country (193).
+- **Name the Flag** — a flag is shown; name the country (193). In Easy mode, after you answer, **📍 Show me** buttons appear (your wrong guess on the left, the correct answer on the right) that pop up the world map with that country highlighted — same zoom and controls as World Countries.
 
 ## How to play
 
